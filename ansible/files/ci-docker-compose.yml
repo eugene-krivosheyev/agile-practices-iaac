@@ -1,0 +1,65 @@
+version: "3.7"
+services:
+  git_server:
+    container_name: git_server
+    restart: always
+    build:
+      context: ./
+      dockerfile: Dockerfile-bitbucket
+    volumes: 
+      - bitbucket_volume:/var/atlassian/application-data/bitbucket
+    networks: 
+      - ci_network
+      - default
+    ports:
+      - "7990:7990"
+      - "7999:7999"
+
+  ci_server:
+    container_name: ci_server
+    restart: always
+    image: atlassian/bamboo-server:6.10.3
+    volumes: 
+      - bamboo_volume:/var/atlassian/application-data/bamboo
+    networks: 
+      - ci_network
+    ports:
+      - "8085:8085"
+      - "54663:54663"
+    environment:
+      - JVM_MINIMUM_MEMORY=1g
+      - JVM_MAXIMUM_MEMORY=1g
+      - bamboo.jms.broker.client.uri=qq
+
+  artifacts_server:
+    image: docker.bintray.io/jfrog/artifactory-oss:6.13.1
+    container_name: artifacts_server
+    volumes:
+      - artifactory_data:/var/opt/jfrog/artifactory
+    ports:
+      - "8081:8081"
+    networks:
+      - ci_network
+    restart: always
+    environment:
+      - EXTRA_JAVA_OPTIONS=-Xms1g -Xmx1g
+
+  sonar_server:
+    image: sonarqube:7.9.1-community
+    container_name: sonar_server
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+    ports:
+      - "9000:9000"
+    networks:
+      - ci_network
+    restart: always
+
+volumes:
+  bitbucket_volume:
+  bamboo_volume:
+  artifactory_data:
+  sonarqube_data:
+
+networks:
+  ci_network:

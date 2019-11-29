@@ -1,0 +1,12 @@
+# Imported roles
+- src: geerlingguy.docker
+  version: "2.5.3"
+
+- src: lean_delivery.java
+  version: "5.3.0"
+
+- src: gantsign.maven
+  version: "5.4.1"
+
+- src: mimacom.bamboo-agent
+  version: "v0.0.1"

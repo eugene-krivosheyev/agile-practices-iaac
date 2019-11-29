@@ -1,0 +1,348 @@
+- hosts: all
+  gather_facts: no
+  become: yes
+
+  tasks:
+  - name: "Prepare apt cache"
+    ignore_errors: yes
+    apt:
+      autoremove: yes
+      autoclean: yes
+      update_cache: yes
+      cache_valid_time: 86400
+
+
+- hosts: ci_hosting
+  gather_facts: yes
+  become: yes
+
+  pre_tasks:
+    - assert:
+        that:
+          - (ansible_memtotal_mb * 1.024)|int >= 12000 #Total RAM Mb. Note that OS and staff already taken ~2Gb.
+          - ansible_processor_vcpus >= 4
+
+    - assert:
+        that:
+          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 8 #Free disk Gb. Note that OS and staff already taken ~2Gb.
+
+  roles:
+    - role: geerlingguy.docker
+      tags:
+      - ci
+      - elk
+
+  tasks:
+    - name: Copy ci-docker-compose file
+      tags: ci
+      become: yes
+      copy:
+        src: ci-docker-compose.yml
+        dest: /var
+
+    - name: Copy elk-docker-compose file
+      tags: elk
+      become: yes
+      copy:
+        src: elk-docker-compose.yml
+        dest: /var
+
+    - name: Copy logstash.conf file
+      tags: elk
+      become: yes
+      copy:
+        src: logstash.conf
+        dest: /var
+
+    - name: Shut down CI docker containers
+      tags: ci
+      become: yes
+      command: docker-compose --file /var/ci-docker-compose.yml down --timeout 60
+      register: ci_shutdown_console
+    - debug: msg="{{ ci_shutdown_console.stdout }}"
+    - debug: msg="{{ ci_shutdown_console.stderr }}"
+
+    - name: Shut down ELK docker containers
+      tags: elk
+      become: yes
+      command: docker-compose --file /var/elk-docker-compose.yml down --timeout 60
+      register: elk_shutdown_console
+    - debug: msg="{{ elk_shutdown_console.stdout }}"
+    - debug: msg="{{ elk_shutdown_console.stderr }}"
+
+    - name: Build and start up CI docker containers
+      tags: ci
+      become: yes
+      command: docker-compose --file /var/ci-docker-compose.yml up --detach
+      register: ci_startup_console
+    - debug: msg="{{ ci_startup_console.stdout }}"
+    - debug: msg="{{ ci_startup_console.stderr }}"
+
+    - name: Build and start up ELK docker containers
+      tags: elk
+      become: yes
+      command: docker-compose --file /var/elk-docker-compose.yml up --detach
+      register: elk_startup_console
+    - debug: msg="{{ elk_startup_console.stdout }}"
+    - debug: msg="{{ elk_startup_console.stderr }}"
+
+
+- hosts: ci_agent
+  gather_facts: yes
+  become: yes
+
+  pre_tasks:
+    - assert:
+        that:
+          - (ansible_memtotal_mb * 1.024)|int >= 3000 #Total RAM Mb. Note that OS and staff already taken ~1.5Gb.
+          - ansible_processor_vcpus >= 1
+
+    - assert:
+        that:
+          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 3 #Free disk Gb. Note that OS and staff already taken ~2Gb.
+
+    - name: Ensure group "bambooagent" exists (due to bug in mimacom.bamboo-agent)
+      tags: bamboo_agent
+      group:
+        name: bambooagent
+        state: present
+
+  roles:
+    - role: lean_delivery.java
+      tags: java
+      transport: repositories
+      java_package: jdk
+      java_major_version: 8
+
+    - role: gantsign.maven
+      tags: maven
+      maven_version: '3.6.2'
+      maven_is_default_installation: yes
+
+    - role: mimacom.bamboo-agent
+      tags: bamboo_agent
+      bamboo_agent_remote: true
+      bamboo_master_version: 6.10.3
+      bamboo_master_fqdn: "{{hostvars['ci_hosting'].ansible_host}}"
+      bamboo_master_https: false
+      bamboo_master_port: 8085
+      bamboo_agent_user: bambooagent
+      bamboo_agent_uid: 5000
+      bamboo_agent_jvm_memory: 2048m
+      install_jdk: false
+      bamboo_agent_capabilities:
+        - name: jdk8
+          symlinks: []
+          properties:
+            - key: system.jdk.JDK\ 1.8
+              value: /usr/lib/jvm/java-8-openjdk-amd64
+        - name: mvn3
+          symlinks: []
+          properties:
+            - key: system.builder.mvn3.Maven\ 3.6
+              value: /opt/maven/apache-maven-3.6.2
+
+  tasks:
+    - name: Copy custom maven settings file to bamboo_agent home directory
+      tags:
+        - bamboo_agent
+        - maven
+      copy:
+        src: maven-settings.xml
+        dest: /home/bambooagent/.m2/settings.xml
+        owner: bambooagent
+        group: bambooagent
+        mode: '0664'
+
+    - name: Install Chrome dependencies
+      tags: chrome
+      become: yes
+      apt:
+        name: "{{item}}"
+      with_items:
+        - libappindicator1
+        - fonts-liberation
+        - libappindicator3-1
+        - libgtk-3-0
+        - libxss1
+        - xdg-utils
+
+    - name: Get Chrome distr
+      tags: chrome
+      become: yes
+      get_url:
+        url: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        dest: /tmp/
+
+    - name: Install Chrome
+      tags: chrome
+      become: yes
+      command: dpkg -i /tmp/google-chrome-stable_current_amd64.deb
+
+
+- hosts: pre_prod
+  gather_facts: yes
+  become: yes
+
+  pre_tasks:
+    - assert:
+        that:
+          - (ansible_memtotal_mb * 1.024)|int >= 2000 #Total RAM Mb. Note that OS and staff already taken ~1.5Gb.
+          - ansible_processor_vcpus >= 1
+
+    - assert:
+        that:
+          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 3 #Free disk Gb. Note that OS and staff already taken ~2Gb.
+
+    - name: Ensure group "bambooagent" exists (due to bug in mimacom.bamboo-agent)
+      tags: bamboo_agent
+      group:
+        name: bambooagent
+        state: present
+
+  roles:
+    - role: lean_delivery.java
+      tags: java
+      transport: repositories
+      java_package: jre
+      java_major_version: 8
+
+    - role: gantsign.maven
+      tags: maven
+      maven_version: '3.6.2'
+      maven_is_default_installation: yes
+
+    - role: mimacom.bamboo-agent
+      tags: bamboo_agent
+      bamboo_agent_remote: true
+      bamboo_master_version: 6.10.3
+      bamboo_master_fqdn: "{{hostvars['ci_hosting'].ansible_host}}"
+      bamboo_master_https: false
+      bamboo_master_port: 8085
+      bamboo_agent_user: bambooagent
+      bamboo_agent_uid: 5000
+      bamboo_agent_jvm_memory: 1024m
+      install_jdk: false
+      bamboo_agent_capabilities:
+        - name: jre8
+          symlinks: []
+          properties:
+            - key: JRE\ 1.8
+              value: /usr/lib/jvm/java-8-openjdk-amd64/jre
+        - name: mvn3
+          symlinks: []
+          properties:
+            - key: system.builder.mvn3.Maven\ 3.6
+              value: /opt/maven/apache-maven-3.6.2
+
+  vars:
+    database: dbo-db
+    db_user: dbo
+    db_password: P@ssw0rd
+
+  tasks:
+    - name: Create user 'dboadmin'
+      tags: distr
+      become: yes
+      user:
+        comment: OS user to deploy and run dbo application
+        name: dboadmin
+        group: admin
+
+    - name: Create dir for application distr
+      tags: distr
+      become: yes
+      become_user: dboadmin
+      file:
+        path: /home/dboadmin/dbo
+        state: directory
+        recurse: yes
+        mode: '0775'
+
+    - name: Copy SUDOers script
+      tags: distr
+      become: yes
+      copy:
+        src: bambooagent
+        dest: /etc/sudoers.d/
+        mode: '0440' #Requirement
+
+    - name: Create placehlder for application distr in order to make link for daemon system
+      tags: distr
+      become: yes
+      become_user: dboadmin
+      file:
+        path: /home/dboadmin/dbo/dbo-1.0-SNAPSHOT.jar
+        state: touch
+        mode: '0775'
+
+    - name: Copy daemon script
+      tags: distr
+      become: yes
+      copy:
+        src: dbo-app.service
+        dest: /etc/systemd/system/
+        mode: '0755'
+
+    - name: Update systemd system
+      tags: distr
+      become: yes
+      command: systemctl daemon-reload
+
+    - name: Enable service start on reboot
+      tags: distr
+      become: yes
+      command: systemctl enable dbo-app.service
+
+    - name: Add 'bambooagent' user to 'admin' group in order to manage distr artifact
+      tags: bamboo_agent
+      become: yes
+      user:
+        name: bambooagent
+        groups: admin
+        append: yes
+
+    - name: Copy custom maven settings file to bamboo_agent home directory
+      tags: bamboo_agent
+      copy:
+        src: maven-settings.xml
+        dest: /home/bambooagent/.m2/settings.xml
+        owner: bambooagent
+        group: bambooagent
+        mode: '0755'
+
+    - name: Install Postgres and dependencies
+      tags: postgres
+      apt:
+        name: "{{item}}"
+      with_items:
+        - postgresql
+        - postgresql-contrib
+        - libpq-dev
+        - python3-psycopg2
+
+    - name: Ensure the PostgreSQL service is running
+      tags: postgres
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: Create database
+      tags: postgres
+      become: true
+      become_user: postgres
+      postgresql_db:
+        name: "{{database}}"
+        state: present
+
+    - name: Create db user and grant access to database
+      tags: postgres
+      become: true
+      become_user: postgres
+      postgresql_user:
+        db: "{{database}}"
+        name: "{{db_user}}"
+        password: "{{db_password}}"
+        priv: ALL
+        state: present

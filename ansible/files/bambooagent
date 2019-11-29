@@ -1,0 +1,1 @@
+bambooagent ALL=NOPASSWD: /bin/systemctl restart dbo-app

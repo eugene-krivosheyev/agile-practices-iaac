@@ -1,0 +1,15 @@
+[Unit]
+Description=DBO Application Service
+
+[Service]
+User=dboadmin
+WorkingDirectory=/home/dboadmin/dbo
+ExecStart=/usr/bin/java -Xmx128m -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=84.201.157.139 -jar dbo-1.0-SNAPSHOT.jar
+ExecStop=/usr/bin/curl --request POST http://localhost:8080/dbo/actuator/shutdown
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
