@@ -24,7 +24,7 @@
 
     - assert:
         that:
-          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 8 #Free disk Gb. Note that OS and staff already taken ~2Gb.
+          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 10 #Free disk Gb. Note that OS and staff already taken ~2Gb.
 
   roles:
     - role: geerlingguy.docker
@@ -94,12 +94,12 @@
   pre_tasks:
     - assert:
         that:
-          - (ansible_memtotal_mb * 1.024)|int >= 3000 #Total RAM Mb. Note that OS and staff already taken ~1.5Gb.
+          - (ansible_memtotal_mb * 1.024)|int >= 4000 #Total RAM Mb. Note that OS and staff already taken ~1.5Gb.
           - ansible_processor_vcpus >= 1
 
     - assert:
         that:
-          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 3 #Free disk Gb. Note that OS and staff already taken ~2Gb.
+          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 4 #Free disk Gb. Note that OS and staff already taken ~2Gb.
 
     - name: Ensure group "bambooagent" exists (due to bug in mimacom.bamboo-agent)
       tags: bamboo_agent
@@ -192,7 +192,7 @@
 
     - assert:
         that:
-          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 3 #Free disk Gb. Note that OS and staff already taken ~2Gb.
+          - ((ansible_mounts|first).size_available | float / 1000000000) | round(1, 'common') >= 4 #Free disk Gb. Note that OS and staff already taken ~2Gb.
 
     - name: Ensure group "bambooagent" exists (due to bug in mimacom.bamboo-agent)
       tags: bamboo_agent
