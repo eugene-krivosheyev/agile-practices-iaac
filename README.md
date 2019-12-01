@@ -96,6 +96,7 @@ ansible-playbook -i ansible/hosts.yml ansible/inventory.yml --limit pre_prod
 - Запуск проекта развертывания
 - Test Restful WebService: 
 ```bash
+curl --request GET http://84.201.157.139:8080/dbo/actuator/health
 curl --request GET --header "X-API-VERSION:1" --url http://84.201.157.139:8080/dbo/api/client
 curl --request GET --header "X-API-VERSION:1" --url http://84.201.157.139:8080/dbo/api/client/11
 ```
