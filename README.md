@@ -36,8 +36,9 @@ ansible-playbook -i ansible/hosts.yml ansible/inventory.yml --limit ci_hosting -
 - [ ] git remote для текущего проекта в IDEA
 - [ ] git push
 ```bash
+cd agile-practices-application
 git remote add bitbucket http://84.201.134.115:7990/scm/dbo/dbo-app.git 
-git push -u bitbucket 
+git push -u bitbucket --all
 ```
 ### [Bamboo](http://84.201.134.115:8085)
 - [ ] Лицензия
@@ -51,8 +52,6 @@ git push -u bitbucket
 Broker URL: tcp://0.0.0.0:54663?wireFormat.maxInactivityDuration=300000
 Broker client URL: failover:(tcp://84.201.134.115:54663?wireFormat.maxInactivityDuration=300000)?initialReconnectDelay=15000&maxReconnectAttempts=10
 ```
-- [ ] [Sonar Plugin for Bamboo](http://84.201.134.115:8085/plugins/servlet/upm/marketplace/featured?source=side_nav_find_new_addons) Plugin
-- [ ] [Configure](http://84.201.134.115:8085/admin/sonar4bamboo/viewSonarServerConfigs.action) Sonar: sonarqube, http://84.201.134.115:9000
 - [ ] Restart Bamboo CI
 ### [Artifactory](http://84.201.134.115:8081)
 - [ ] Учетка
@@ -63,12 +62,10 @@ Broker client URL: failover:(tcp://84.201.134.115:54663?wireFormat.maxInactivity
 - [ ] Обновить данные в IaaS/ansible/files/maven-settings.xml
 ### [SonarQube](http://84.201.134.115:9000)
 - [ ] Учетка
-- [ ] Плагины покрытия
-- [ ] Настройки плагинов покрытия
+- [ ] [Сгенерировать токен доступа](http://84.201.134.115:9000/account/security/) и добавить в agile-practices-application/bamboo-specs
 
 ## Раскатка сервисов ELK
 ```bash
-cd IaaS
 ansible-playbook -i ansible/hosts.yml ansible/inventory.yml --limit ci_hosting --tags "elk"
 ```
 - [ ] [Kibana](http://84.201.134.115:5601/app/kibana#/management/elasticsearch/index_management/indices?_g=())
