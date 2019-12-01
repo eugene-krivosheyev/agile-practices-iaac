@@ -34,12 +34,12 @@ ansible-playbook -i ansible/hosts.yml ansible/inventory.yml --limit ci_hosting -
 - [ ] Учетка
 - [ ] Репошечка: dbo-app
 - [ ] git remote для текущего проекта в IDEA
-- [ ] git push
 ```bash
 cd agile-practices-application
 git remote add bitbucket http://84.201.134.115:7990/scm/dbo/dbo-app.git 
 git push -u bitbucket --all
 ```
+- [ ] git push
 ### [Bamboo](http://84.201.134.115:8085)
 - [ ] Лицензия
 - [ ] Учетка
@@ -59,7 +59,7 @@ Broker client URL: failover:(tcp://84.201.134.115:54663?wireFormat.maxInactivity
 - [ ] Первая удаленная репошечка: jcenter, https://jcenter.bintray.com, Allow Content Browsing
 - [ ] Вторая удаленная репошечка: mvncentral, https://repo1.maven.org/maven2, Allow Content Browsing
 - [ ] Виртуальная репошечка dbo: добавить dbo-corp + jcenter + mavencentral, Default Deployment Repository, Artifactory Requests Can Retrieve Remote Artifacts
-- [ ] Обновить данные в IaaS/ansible/files/maven-settings.xml
+- [ ] Обновить данные в ansible/files/maven-settings.xml
 ### [SonarQube](http://84.201.134.115:9000)
 - [ ] Учетка
 - [ ] [Сгенерировать токен доступа](http://84.201.134.115:9000/account/security/) и добавить в agile-practices-application/bamboo-specs
