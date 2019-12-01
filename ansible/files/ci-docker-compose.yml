@@ -3,17 +3,18 @@ services:
   git_server:
     container_name: git_server
     restart: always
-    build:
-      context: ./
-      dockerfile: Dockerfile-bitbucket
+    image: atlassian/bitbucket-server:6.7
     volumes: 
       - bitbucket_volume:/var/atlassian/application-data/bitbucket
     networks: 
       - ci_network
-      - default
     ports:
       - "7990:7990"
       - "7999:7999"
+    environment:
+      - ELASTICSEARCH_ENABLED=false
+      - JVM_MINIMUM_MEMORY=1g
+      - JVM_MAXIMUM_MEMORY=1g
 
   ci_server:
     container_name: ci_server
@@ -29,7 +30,6 @@ services:
     environment:
       - JVM_MINIMUM_MEMORY=1g
       - JVM_MAXIMUM_MEMORY=1g
-      - bamboo.jms.broker.client.uri=qq
 
   artifacts_server:
     image: docker.bintray.io/jfrog/artifactory-oss:6.13.1
